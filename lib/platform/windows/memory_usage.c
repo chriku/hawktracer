@@ -47,7 +47,7 @@ ht_memory_usage_get_usage(HT_MemoryUsageContext* context,
         return HT_ERR_OK;
     }
 
-    if (GetProcessMemoryInfo(context->process, &pmc, sizeof(pmc)))
+    if (GetProcessMemoryInfo(context->process, (PPROCESS_MEMORY_COUNTERS)&pmc, sizeof(pmc)))
     {
         if (virtual_memory_bytes)
         {
