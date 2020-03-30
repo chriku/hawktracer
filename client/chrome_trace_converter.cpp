@@ -4,7 +4,8 @@
 
 static uint64_t ns_to_ms(uint64_t nano_secs)
 {
-    return nano_secs / 1000u;
+//if(nano_secs<1000) return 1;
+return nano_secs;// / 1000u;
 }
 
 namespace HawkTracer
