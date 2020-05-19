@@ -1,4 +1,5 @@
 #include <hawktracer/macros.h>
+#include <hawktracer/base_types.h>
 
 #if defined(HT_MUTEX_IMPL_CUSTOM) || defined(HT_MUTEX_IMPL_CPP11) || defined(HT_MUTEX_IMPL_WIN32) || defined(HT_MUTEX_IMPL_POSIX)
 #  define HT_MUTEX_FORCE_SELECTED
