@@ -4,8 +4,7 @@
 
 static uint64_t ns_to_ms(uint64_t nano_secs)
 {
-//if(nano_secs<1000) return 1;
-return nano_secs;// / 1000u;
+return nano_secs;
 }
 
 namespace HawkTracer
@@ -30,6 +29,9 @@ bool ChromeTraceConverter::init(const std::string& file_name)
     return false;
 }
 
+uint64_t first_evt=0;
+bool fe=false;
+
 void ChromeTraceConverter::process_event(const parser::Event& event)
 {
     std::string label = _get_label(event);
@@ -48,10 +50,12 @@ void ChromeTraceConverter::process_event(const parser::Event& event)
         _first_event_saved = true;
     }
 
+    if(!fe){fe=true; first_evt=event.get_timestamp();}
+
     // Chrome expects the timestamps/durations to be microseconds
     // so we need to convert from nano to micro
     _file << "{\"name\": \"" << label
-         << "\", \"ph\": \"X\", \"ts\": " << ns_to_ms(event.get_timestamp())
+         << "\", \"ph\": \"X\", \"ts\": " << ns_to_ms(event.get_timestamp()-first_evt)
          << ", \"dur\": " << ns_to_ms(event.get_value_or_default<HT_DurationNs>("duration", 0u))
          << ", \"pid\": 0, \"tid\": " << event.get_value_or_default<HT_ThreadId>("thread_id", 0u)
          << ", \"args\": {" << _get_args(event) << "}"
