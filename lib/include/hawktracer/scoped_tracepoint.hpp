@@ -4,6 +4,13 @@
 #ifdef __cplusplus
 
 #include <hawktracer/feature_callstack.h>
+namespace outside {
+#ifdef MAIN_PROGRAM
+void ht_feature_callstack_stop(HT_Timeline*);
+#else
+extern void (*ht_feature_callstack_stop)(HT_Timeline*);
+#endif
+}
 
 namespace HawkTracer
 {
@@ -35,7 +42,7 @@ public:
 
     ~ScopedTracepoint()
     {
-        ht_feature_callstack_stop(_timeline);
+        outside::ht_feature_callstack_stop(_timeline);
     }
 
 private:
