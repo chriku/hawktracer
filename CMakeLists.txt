@@ -13,6 +13,10 @@ option(ENABLE_EXAMPLES "Enable examples" OFF)
 option(ENABLE_DOC "Build documentation" ON)
 option(ENABLE_CLIENT "Enable client application for parsing HawkTracer stream" ON)
 option(ENABLE_PYTHON_BINDINGS "Enable Python bindings (requires ENABLE_CLIENT=ON)" OFF)
+option(ENABLE_THREADS "Enable multi-threading support in HawkTracer at compilation time" ON)
+
+option(ENABLE_TCP_LISTENER "Enable TCP listener in a core library" ON)
+option(FORCE_C_COMPILATION "Forces to build HawkTracer core library with C compiler" OFF)
 
 option(ENABLE_POSITION_INDEPENDENT_CODE "Enable position independent code of
     the HawkTracer library. For most of the casses, it adds -fPIC flag to a compiler." OFF)
@@ -44,8 +48,6 @@ endif()
 
 set (CMAKE_CXX_STANDARD 11)
 set (CMAKE_C_STANDARD 99)
-set(THREADS_PREFER_PTHREAD_FLAG ON)
-find_package(Threads REQUIRED)
 
 if(ENABLE_MAINTAINER_MODE)
     set(ENABLE_PYTHON_BINDINGS ON)
@@ -63,7 +65,6 @@ if(ENABLE_RELEASE_MODE)
 endif(ENABLE_RELEASE_MODE)
 
 include(warnings)
-include(test_amalgamation)
 
 if(ENABLE_ASAN)
     include(asan)
@@ -82,6 +83,8 @@ if(BUILD_STATIC_LIB)
 else ()
     set(HAWKTRACER_LIB_TYPE SHARED)
 endif(BUILD_STATIC_LIB)
+
+include(test_amalgamation)
 
 add_subdirectory(lib)
 

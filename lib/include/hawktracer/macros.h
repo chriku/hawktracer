@@ -88,7 +88,9 @@
  * @def HT_THREAD_LOCAL
  * A thread storage duration.
  */
-#ifdef HT_CPP11
+#ifndef HT_ENABLE_THREADS
+#  define HT_THREAD_LOCAL
+#elif defined(HT_CPP11)
 #  define HT_THREAD_LOCAL thread_local
 #elif __STDC_VERSION__ >= 201112 && !defined __STDC_NO_THREADS__
 #  define HT_THREAD_LOCAL _Thread_local
@@ -101,5 +103,11 @@
 #if defined(HT_HAVE_UNISTD_H) || (defined(__unix__) || (defined(__APPLE__) && defined(__MACH__)))
 #  define HT_HAVE_UNISTD_H
 #endif
+
+/* Integer constants */
+/* int32_t max value */
+#define HT_INT32_MAX (2147483647)
+/* size_t max value */
+#define HT_SIZE_MAX ((size_t)-1)
 
 #endif /* HAWKTRACER_MACROS_H */

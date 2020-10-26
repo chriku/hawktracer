@@ -1,4 +1,7 @@
 #include "hawktracer/listeners/tcp_listener.h"
+
+#ifdef HT_ENABLE_TCP_LISTENER
+
 #include "hawktracer/alloc.h"
 #include "hawktracer/timeline_listener.h"
 
@@ -18,6 +21,9 @@ struct _HT_TCPListener
     /* TODO: This is just a hack to prevent from sending half-events.
      * We should revisit this for next release */
     HT_Boolean _was_flushed;
+    HT_TCPListenerOnClientConnectedCallback _client_connected_callback;
+    void* _client_connected_user_data;
+
 };
 
 HT_INLINE static HT_Boolean
@@ -57,6 +63,11 @@ ht_tcp_listener_client_connected(int sock_fd, void* user_data)
     HT_TCPListener* listener = (HT_TCPListener*)user_data;
     listener->_last_client_sock_fd = sock_fd;
     ht_timeline_listener_push_metadata(ht_tcp_listener_metadata_pusher, user_data, HT_TRUE);
+
+    if (listener->_client_connected_callback)
+    {
+        listener->_client_connected_callback(sock_fd, listener->_client_connected_user_data);
+    }
 }
 
 static HT_ErrorCode
@@ -166,6 +177,16 @@ register_done:
 }
 
 void
+ht_tcp_listener_set_on_client_connected_callback(
+    HT_TCPListener* listener, HT_TCPListenerOnClientConnectedCallback callback, void* user_data)
+{
+    assert(listener);
+
+    listener->_client_connected_user_data = user_data;
+    listener->_client_connected_callback = callback;
+}
+
+void
 ht_tcp_listener_destroy(HT_TCPListener* listener)
 {
     if (!_ht_tcp_listener_is_stopped(listener))
@@ -202,3 +223,5 @@ ht_tcp_listener_stop(HT_TCPListener* listener)
 
     ht_mutex_unlock(listener->_push_action_mutex);
 }
+
+#endif /* HT_ENABLE_TCP_LISTENER */

@@ -1,8 +1,6 @@
-set(HAWKTRACER_LISTENER_HEADERS
-    include/hawktracer/listeners/file_dump_listener.h
-    include/hawktracer/listeners/tcp_listener.h)
+include(CheckCXXCompilerFlag)
 
-set(HAWKTRACER_CORE_HEADERS
+set(HAWKTRACER_LIB_HEADERS
     include/hawktracer/alloc.h
     include/hawktracer/base_types.h
     include/hawktracer/core_events.h
@@ -29,43 +27,56 @@ set(HAWKTRACER_CORE_HEADERS
     include/hawktracer/task_scheduler.h
     include/hawktracer/thread.h
     include/hawktracer/timeline.h
-    include/hawktracer/timeline_listener.h)
+    include/hawktracer/timeline_listener.h
 
-set(HAWKTRACER_LIB_HEADERS ${HAWKTRACER_LISTENER_HEADERS} ${HAWKTRACER_CORE_HEADERS})
+    # listeners
+    include/hawktracer/listeners/file_dump_listener.h)
 
-set(HAWKTRACER_LISTENERS_SOURCES
-    listeners/file_dump_listener.c
-    listeners/tcp_listener.c)
+set(HAWKTRACER_CPP_LIB_SOURCES
+    event_id_provider.cpp
+    global_timeline.cpp
+    monotonic_clock.cpp
+    mutex.cpp)
 
-set(HAWKTRACER_CORE_SOURCES
+if(FORCE_C_COMPILATION)
+    # setting LANGUAGE property for gcc doesn't seem to be enough as it
+    # only sets -std=gnu99, but that doesn't actually force compiler to
+    # use C. So we set the language explicitly in the compiler.
+    check_cxx_compiler_flag("-x c" COMPILER_SUPPORTS_LANGUAGE_SELECTION)
+    if(COMPILER_SUPPORTS_LANGUAGE_SELECTION)
+        set_source_files_properties(${HAWKTRACER_CPP_LIB_SOURCES} PROPERTIES COMPILE_FLAGS "-x c")
+    endif()
+    set_source_files_properties(${HAWKTRACER_CPP_LIB_SOURCES} PROPERTIES LANGUAGE C)
+endif()
+
+set(HAWKTRACER_LIB_SOURCES
     alloc.c
     bag.c
     command_line_parser.c
-    event_id_provider.cpp
     event_utils.c
     events.c
     feature_cached_string.c
     feature_callstack.c
-    global_timeline.cpp
     hash_map.c
     init.c
     listener_buffer.c
-    monotonic_clock.cpp
-    mutex.cpp
     registry.c
     scoped_tracepoint.c
     stack.c
     system_info.c
     task_scheduler.c
-    tcp_server.cpp
     thread.c
     timeline.c
-    timeline_listener.c)
+    timeline_listener.c
+    ${HAWKTRACER_CPP_LIB_SOURCES}
+
+    # listeners
+    listeners/file_dump_listener.c)
 
 macro(INCLUDE_FEATURE FEATURE_NAME FEATURE_HEADER)
     if (HT_PLATFORM_FEATURE_${FEATURE_NAME}_ENABLED)
-        list(APPEND HAWKTRACER_CORE_HEADERS ${FEATURE_HEADER})
-        list(APPEND HAWKTRACER_CORE_SOURCES "${HT_PLATFORM_FEATURE_${FEATURE_NAME}_SOURCE}")
+        list(APPEND HAWKTRACER_LIB_HEADERS ${FEATURE_HEADER})
+        list(APPEND HAWKTRACER_LIB_SOURCES "${HT_PLATFORM_FEATURE_${FEATURE_NAME}_SOURCE}")
     endif()
 endmacro(INCLUDE_FEATURE)
 
@@ -73,19 +84,34 @@ INCLUDE_FEATURE(CPU_USAGE include/hawktracer/cpu_usage.h)
 INCLUDE_FEATURE(MEMORY_USAGE include/hawktracer/memory_usage.h)
 INCLUDE_FEATURE(ALLOC_HOOKS include/hawktracer/alloc_hooks.h)
 
-if (CMAKE_USE_PTHREADS_INIT)
-    set(HT_USE_PTHREADS ON)
-    list(APPEND HAWKTRACER_CORE_HEADERS include/hawktracer/posix_mapped_tracepoint.h)
-    list(APPEND HAWKTRACER_CORE_SOURCES posix_mapped_tracepoint.c)
-endif()
-
 if (BUILD_STATIC_LIB)
     set(HT_COMPILE_STATIC ON)
 endif (BUILD_STATIC_LIB)
 
+if (ENABLE_TCP_LISTENER)
+    if (NOT ENABLE_THREADS)
+        message(FATAL_ERROR "Threads must be enabled for TCP listener")
+    endif()
+    set(HT_ENABLE_TCP_LISTENER ON)
+    list(APPEND HAWKTRACER_LIB_SOURCES listeners/tcp_listener.c tcp_server.cpp)
+    list(APPEND HAWKTRACER_LIB_HEADERS include/hawktracer/listeners/tcp_listener.h)
+endif()
+
+if (ENABLE_THREADS)
+    set(HT_ENABLE_THREADS ON)
+
+    set(THREADS_PREFER_PTHREAD_FLAG ON)
+    find_package(Threads REQUIRED)
+
+    if (CMAKE_USE_PTHREADS_INIT)
+        set(HT_USE_PTHREADS ON)
+        list(APPEND HAWKTRACER_LIB_HEADERS include/hawktracer/posix_mapped_tracepoint.h)
+        list(APPEND HAWKTRACER_LIB_SOURCES posix_mapped_tracepoint.c)
+    endif()
+endif()
+
 configure_file(include/hawktracer/ht_config.h.in include/hawktracer/ht_config.h)
 
-set(HAWKTRACER_LIB_SOURCES ${HAWKTRACER_LISTENERS_SOURCES} ${HAWKTRACER_CORE_SOURCES})
 set(HAWKTRACER_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/include" "${CMAKE_CURRENT_BINARY_DIR}/include")
 
 add_library(hawktracer ${HAWKTRACER_LIB_TYPE} ${HAWKTRACER_LIB_SOURCES})

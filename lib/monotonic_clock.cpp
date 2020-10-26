@@ -32,7 +32,9 @@
 #elif defined(HT_MONOTONIC_CLOCK_IMPL_POSIX)
 #  include <time.h>
 #elif defined(HT_MONOTONIC_CLOCK_IMPL_APPLE)
-#  include <mach/mach_time.h>
+#  include <mach/mach_host.h>
+#  include <mach/mach_port.h>
+#  include <mach/clock.h>
 #elif defined(HT_MONOTONIC_CLOCK_IMPL_WIN32)
 #  include<windows.h>
 #  pragma section(".CRT$XCU",read)
@@ -69,6 +71,9 @@ ht_monotonic_clock_get_timestamp(void)
     LARGE_INTEGER li;
     QueryPerformanceCounter(&li);
     return (li.QuadPart) * 1000000000 / _ht_msvc_frequency;
+#else
+#  error "Monotonic clock provider has not been found. Define HT_MONOTONIC_CLOCK_IMPL_CUSTOM" \
+    "and provide custom implementation of ht_monotonic_clock_get_timestamp() function"
 #endif
 }
 
